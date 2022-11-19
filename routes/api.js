@@ -66,10 +66,9 @@ module.exports = function (app) {
       }
 
       Book.findById(bookid, (err, book) => {
-        if (err) return res.send(err);
-        if (!book) return res.send("no book exists");
+        if (err || !book) return res.send("no book exists");
 
-        res.send(book)
+        res.send(book);
       });
     })
     
@@ -92,7 +91,7 @@ module.exports = function (app) {
         },
         { new: true },
         (err, updatedBook) => {
-          if (err) return res.send(err);
+          if (err || !updatedBook) return res.send("no book exists");
 
           res.send(updatedBook);
         }
