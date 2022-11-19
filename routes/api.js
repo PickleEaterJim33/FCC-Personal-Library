@@ -105,8 +105,8 @@ module.exports = function (app) {
         return res.send("missing required field title");
       }
 
-      Book.findByIdAndDelete(bookid, err => {
-        if (err) return res.send(err);
+      Book.findByIdAndDelete(bookid, (err, deletedBook) => {
+        if (err || !deletedBook) return res.send("no book exists");
 
         res.send("delete successful");
       });
