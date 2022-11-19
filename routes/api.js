@@ -7,22 +7,52 @@
 */
 
 'use strict';
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+mongoose.connect(process.env.DB, {
+  useNewUrlParser: true, useUnifiedTopology: true
+});
+
+const bookSchema = new Schema({
+  comments: [{ type: String, default: [] }],
+  title: { type: String, required: true },
+  commentcount: { type: Number, default: 0 }
+});
+const Book = mongoose.model("Book", bookSchema);
 
 module.exports = function (app) {
 
   app.route('/api/books')
     .get(function (req, res){
-      //response will be array of book objects
-      //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
+      Book.find({}, (err, users) => {
+        if (err) return res.send(err);
+
+        res.send(users);
+      });
     })
     
     .post(function (req, res){
       let title = req.body.title;
-      //response will contain new book object including atleast _id and title
+      
+      if (typeof title === "undefined" || title === null || title === "") {
+        return res.send("missing required field title");
+      }
+
+      const book = new Book({ title: title });
+      book.save(err => {
+        if (err) return res.send(err);
+
+        res.send({ _id: book._id, title: book.title });
+      });
     })
     
     .delete(function(req, res){
-      //if successful response will be 'complete delete successful'
+      Book.deleteMany({}, err => {
+        if (err) return res.send(err);
+
+        res.send("complete delete successful");
+      });
     });
 
 
@@ -30,18 +60,57 @@ module.exports = function (app) {
   app.route('/api/books/:id')
     .get(function (req, res){
       let bookid = req.params.id;
-      //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
+
+      if (typeof bookid === "undefined" || bookid === null || bookid === "") {
+        return res.send("missing required field title");
+      }
+
+      Book.findById(bookid, (err, book) => {
+        if (err) return res.send(err);
+        if (!book) return res.send("no book exists");
+
+        res.send(book)
+      });
     })
     
     .post(function(req, res){
       let bookid = req.params.id;
       let comment = req.body.comment;
-      //json res format same as .get
+      
+      if (typeof bookid === "undefined" || bookid === null || bookid === "") {
+        return res.send("missing required field title");
+      }
+      if (typeof comment === "undefined" || comment === null || comment === "") {
+        return res.send("missing required field comment");
+      }
+
+      Book.findOneAndUpdate(
+        { _id: bookid },
+        { 
+          $push: { comments: comment },
+          $inc: { commentcount: 1 }
+        },
+        { new: true },
+        (err, updatedBook) => {
+          if (err) return res.send(err);
+
+          res.send(updatedBook);
+        }
+      );
     })
     
     .delete(function(req, res){
       let bookid = req.params.id;
-      //if successful response will be 'delete successful'
+
+      if (typeof bookid === "undefined" || bookid === null || bookid === "") {
+        return res.send("missing required field title");
+      }
+
+      Book.findByIdAndDelete(bookid, err => {
+        if (err) return res.send(err);
+
+        res.send("delete successful");
+      });
     });
   
 };
